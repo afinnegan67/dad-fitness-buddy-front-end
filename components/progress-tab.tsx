@@ -1,61 +1,69 @@
 "use client"
 
 import { useContext, useMemo } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { PlanContext } from "@/context/plan-context"
-
-const MOCK_COMPLETION_DATA = [
-  { name: "Week 1", completions: 3 },
-  { name: "Week 2", completions: 2 },
-  { name: "Week 3", completions: 4 },
-  { name: "Week 4", completions: 3 },
-]
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
 export function ProgressTab() {
   const { plan } = useContext(PlanContext)
 
-  const weeklyProgress = useMemo(() => {
-    if (!plan?.workout?.weeklySchedule) return { completed: 0, total: 0 }
-    const workoutDays = plan.workout.weeklySchedule.filter((d) => d.focus !== "Rest" && d.focus !== "Active Recovery")
-    const completed = workoutDays.filter((d) => d.completed).length
-    return { completed, total: workoutDays.length }
+  const totalWorkouts = useMemo(() => {
+    if (!plan?.weekly_split) return 0
+    return Object.keys(plan.weekly_split).length
   }, [plan])
 
-  const currentStreak = useMemo(() => {
-    if (!plan?.workout?.weeklySchedule) return 0
-    let streak = 0
-    let continueCounting = true
-    // Create a copy to avoid mutating the original plan data
-    const schedule = [...plan.workout.weeklySchedule].reverse()
-    for (const day of schedule) {
-      if (day.focus !== "Rest" && day.focus !== "Active Recovery") {
-        if (day.completed && continueCounting) {
-          streak++
-        } else if (!day.completed) {
-          // Stop counting once we hit an incomplete workout day
-          continueCounting = false
-        }
-      }
-    }
-    return streak
+  const chartData = useMemo(() => {
+    if (!plan?.weekly_split) return []
+    return Object.entries(plan.weekly_split).map(([day, workout]) => ({
+      day: day.substring(0, 3),
+      exercises: workout.exercises.length,
+    }))
   }, [plan])
-
-  const barData = [{ name: "This Week", completed: weeklyProgress.completed, total: weeklyProgress.total }]
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-slate-900 border-slate-800 text-center">
         <CardHeader>
-          <CardTitle>Progress Tracking</CardTitle>
+          <CardTitle className="text-base">Workouts This Week</CardTitle>
+          <CardDescription>Total planned sessions</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-slate-400 text-center py-8">
-            Progress tracking features are being updated for the new plan structure and will be available soon.
-          </p>
+          <p className="text-5xl font-bold">{totalWorkouts}</p>
         </CardContent>
       </Card>
 
-      {/* Placeholder for future updates */}
+      <Card className="bg-slate-900 border-slate-800">
+        <CardHeader>
+          <CardTitle>Exercises per Session</CardTitle>
+          <CardDescription>A look at the volume for each workout day.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+              <XAxis dataKey="day" stroke="#64748b" fontSize={12} />
+              <YAxis stroke="#64748b" fontSize={12} allowDecimals={false} />
+              <Tooltip
+                cursor={{ fill: "rgba(255, 255, 255, 0.1)" }}
+                contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155" }}
+              />
+              <Bar dataKey="exercises" fill="#34d399" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+      <Card className="bg-slate-900 border-slate-800">
+        <CardHeader>
+          <CardTitle>Note on Progress</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-slate-400">
+            To track workout completion and streaks, we'll need to add a feature to mark sessions as "complete". This
+            can be added in a future update.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }
